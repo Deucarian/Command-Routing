@@ -1,0 +1,26 @@
+{
+  "name": "Deucarian.CommandRouting.Tests",
+  "rootNamespace": "Deucarian.CommandRouting.Tests",
+  "references": [
+    "Deucarian.CommandRouting",
+    "Deucarian.Diagnostics",
+    "Newtonsoft.Json"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": true,
+  "precompiledReferences": [
+    "nunit.framework.dll",
+    "Newtonsoft.Json.dll"
+  ],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ],
+  "noEngineReferences": false
+}

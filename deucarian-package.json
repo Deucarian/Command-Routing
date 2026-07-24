@@ -1,0 +1,32 @@
+{
+  "packageId": "com.deucarian.command-routing",
+  "displayName": "Deucarian Command Routing",
+  "ownedCapabilities": [
+    "command-routing",
+    "command-protocol"
+  ],
+  "runtimeAssemblies": [
+    "Deucarian.CommandRouting"
+  ],
+  "editorAssemblies": [
+    "Deucarian.CommandRouting.Editor"
+  ],
+  "sampleAssemblies": [
+    "Deucarian.CommandRouting.Samples.Basic"
+  ],
+  "testAssemblies": [
+    "Deucarian.CommandRouting.Tests"
+  ],
+  "requiredDependencies": [
+    "com.deucarian.diagnostics",
+    "com.deucarian.editor",
+    "com.deucarian.logging",
+    "com.unity.nuget.newtonsoft-json"
+  ],
+  "optionalVersionDefinedDependencies": [],
+  "allowedDirectDebugCalls": [],
+  "allowedDirectUnityObjectLifetimeCalls": [],
+  "expectedSamplesRoot": "Samples~",
+  "samplePolicy": "compiled-example",
+  "operationalPackage": true
+}

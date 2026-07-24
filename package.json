@@ -1,0 +1,36 @@
+{
+  "name": "com.deucarian.command-routing",
+  "version": "0.1.0",
+  "displayName": "Deucarian Command Routing",
+  "description": "Transport-independent command routing, JSON protocol, diagnostics, logging, and editor tooling for Unity.",
+  "unity": "2021.3",
+  "license": "MIT",
+  "author": {
+    "name": "Deucarian"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Deucarian/Command-Routing.git"
+  },
+  "keywords": [
+    "deucarian",
+    "commands",
+    "routing",
+    "json",
+    "messaging",
+    "diagnostics"
+  ],
+  "dependencies": {
+    "com.deucarian.diagnostics": "0.1.4",
+    "com.deucarian.editor": "1.0.5",
+    "com.deucarian.logging": "1.0.2",
+    "com.unity.nuget.newtonsoft-json": "3.2.2"
+  },
+  "samples": [
+    {
+      "displayName": "Command Routing Basics",
+      "description": "Explicit handler composition and JSON command dispatch.",
+      "path": "Samples~/Command Routing Basics"
+    }
+  ]
+}
