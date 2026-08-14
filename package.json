@@ -1,6 +1,6 @@
 {
   "name": "com.deucarian.command-routing",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "displayName": "Deucarian Command Routing",
   "description": "Transport-independent command routing, JSON protocol, diagnostics, logging, and editor tooling for Unity.",
   "unity": "2021.3",

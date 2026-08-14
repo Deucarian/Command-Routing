@@ -73,12 +73,22 @@ namespace Deucarian.CommandRouting
                 return;
             }
 
-            started = false;
             transport.MessageReceived -= OnMessageReceived;
             cancellation.Cancel();
-            transport.Stop();
-            cancellation.Dispose();
-            cancellation = null;
+            try
+            {
+                transport.Stop();
+            }
+            catch
+            {
+                // Keep the bridge retryable while the underlying transport is
+                // still active. The handler remains detached and the current
+                // dispatch generation remains cancelled until Stop succeeds.
+                throw;
+            }
+
+            started = false;
+            DisposeCancellation();
         }
 
         public void Dispose()
@@ -88,12 +98,58 @@ namespace Deucarian.CommandRouting
                 return;
             }
 
-            Stop();
+            Exception failure = null;
+            try
+            {
+                Stop();
+            }
+            catch (Exception exception)
+            {
+                failure = exception;
+            }
+
             disposed = true;
+            started = false;
+            transport.MessageReceived -= OnMessageReceived;
+            DisposeCancellation();
+
             if (ownsTransport)
             {
-                transport.Dispose();
+                try
+                {
+                    transport.Dispose();
+                }
+                catch (Exception exception)
+                {
+                    failure = CombineFailures(failure, exception);
+                }
             }
+
+            if (failure != null)
+            {
+                throw failure;
+            }
+        }
+
+        private void DisposeCancellation()
+        {
+            cancellation?.Dispose();
+            cancellation = null;
+        }
+
+        private static Exception CombineFailures(
+            Exception first,
+            Exception second)
+        {
+            if (first == null)
+            {
+                return second;
+            }
+
+            return new AggregateException(
+                "Command transport bridge cleanup failed.",
+                first,
+                second);
         }
 
         private async void OnMessageReceived(

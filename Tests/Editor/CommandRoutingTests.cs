@@ -299,6 +299,62 @@ namespace Deucarian.CommandRouting.Tests
             Assert.That(transport.IsRunning, Is.False);
         }
 
+        [Test]
+        public void TransportBridge_StopCanRetryAfterTransportFailure()
+        {
+            var transport = new FakeTransport("retry")
+            {
+                RemainingStopFailures = 1
+            };
+
+            using (var runtime =
+                   new CommandRoutingRuntime<object>(
+                       new object(),
+                       new[] { new StubHandler(new[] { "run" }) }))
+            using (var bridge =
+                   new CommandTransportBridge<object>(
+                       runtime,
+                       transport))
+            {
+                bridge.Start();
+
+                Assert.Throws<InvalidOperationException>(() => bridge.Stop());
+                Assert.That(bridge.IsRunning, Is.True);
+                Assert.That(transport.StopCount, Is.EqualTo(1));
+
+                Assert.DoesNotThrow(() => bridge.Stop());
+                Assert.That(bridge.IsRunning, Is.False);
+                Assert.That(transport.StopCount, Is.EqualTo(2));
+            }
+        }
+
+        [Test]
+        public void TransportBridge_DisposeIsTerminalAfterStopFailure()
+        {
+            var transport = new FakeTransport("dispose")
+            {
+                RemainingStopFailures = 1
+            };
+            using (var runtime =
+                   new CommandRoutingRuntime<object>(
+                       new object(),
+                       new[] { new StubHandler(new[] { "run" }) }))
+            {
+                var bridge =
+                    new CommandTransportBridge<object>(
+                        runtime,
+                        transport,
+                        disposeTransport: true);
+                bridge.Start();
+
+                Assert.Throws<InvalidOperationException>(() => bridge.Dispose());
+                Assert.That(transport.DisposeCount, Is.EqualTo(1));
+                Assert.That(transport.IsRunning, Is.False);
+                Assert.Throws<ObjectDisposedException>(() => bridge.Start());
+                Assert.DoesNotThrow(() => bridge.Dispose());
+            }
+        }
+
         private static async Task<T> WithTimeout<T>(
             Task<T> task)
         {
@@ -415,6 +471,9 @@ namespace Deucarian.CommandRouting.Tests
 
             public string TransportId { get; }
             public bool IsRunning { get; private set; }
+            public int RemainingStopFailures { get; set; }
+            public int StopCount { get; private set; }
+            public int DisposeCount { get; private set; }
             public Task<string> Response => response.Task;
 
             public event EventHandler<
@@ -427,6 +486,14 @@ namespace Deucarian.CommandRouting.Tests
 
             public void Stop()
             {
+                StopCount++;
+                if (RemainingStopFailures > 0)
+                {
+                    RemainingStopFailures--;
+                    throw new InvalidOperationException(
+                        "Synthetic transport stop failure.");
+                }
+
                 IsRunning = false;
             }
 
@@ -452,6 +519,7 @@ namespace Deucarian.CommandRouting.Tests
 
             public void Dispose()
             {
+                DisposeCount++;
                 Stop();
             }
         }
