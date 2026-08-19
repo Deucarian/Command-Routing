@@ -9,5 +9,6 @@ namespace Deucarian.CommandRouting
         public const string UnsupportedCommand = "unsupported_command";
         public const string HandlerFailed = "command_handler_failed";
         public const string Cancelled = "command_cancelled";
+        public const string RouteUnavailable = "command_route_unavailable";
     }
 }
