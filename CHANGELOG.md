@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.2] - 2026-08-19
+
+### Added
+
+- Added a non-generic `ICommandRoutePort` implemented by every command runtime.
+- Added an explicitly injected scene route-port behaviour so editor tooling and
+  local adapters can submit the same protocol messages as external transports.
+
 ## [0.1.1] - 2026-08-14
 
 ### Fixed
