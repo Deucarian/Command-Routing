@@ -8,7 +8,8 @@ using Deucarian.Logging;
 namespace Deucarian.CommandRouting
 {
     public sealed class CommandRoutingRuntime<TApplicationContext> :
-        IDisposable
+        IDisposable,
+        ICommandRoutePort
     {
         private static readonly DLog Log =
             DLog.For("CommandRouting");
