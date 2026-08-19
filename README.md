@@ -38,6 +38,13 @@ The runtime registers a sanitized diagnostics provider, uses
 `Deucarian.Logging`, rejects duplicate command names, and keeps a bounded
 redacted history.
 
+Every runtime also implements `ICommandRoutePort`. A composition root may
+inject that port into `CommandRoutePortBehaviour` when a scene-owned local
+ingress is useful—for example, an editor development profile can submit the
+same `initialize_viewer` envelope as a browser transport without knowing the
+application context type. The behaviour is not a registry and never locates
+services; the owning composition root must initialize it explicitly.
+
 ## Editor
 
 Open:
