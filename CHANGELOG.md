@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.0] - 2026-08-24
+
+### Added
+
+- Added a live Unity Editor command tester that routes manual envelopes through
+  the initialized scene command port.
+- Added package-extensible generated scenario catalogs with revision token
+  replacement, expected outcomes, and automatic sequence execution.
+
 ## [0.1.2] - 2026-08-19
 
 ### Added

@@ -3,6 +3,7 @@
   "rootNamespace": "Deucarian.CommandRouting.Tests",
   "references": [
     "Deucarian.CommandRouting",
+    "Deucarian.CommandRouting.Editor",
     "Deucarian.Diagnostics",
     "Newtonsoft.Json"
   ],
