@@ -1,5 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using Deucarian.Diagnostics;
 using Deucarian.Editor;
 using Newtonsoft.Json;
@@ -22,7 +25,7 @@ namespace Deucarian.CommandRouting.Editor
         {
             "Overview",
             "Settings",
-            "Simulator",
+            "Live Tester",
             "Diagnostics"
         };
 
@@ -41,6 +44,19 @@ namespace Deucarian.CommandRouting.Editor
             "Enter an envelope and validate it.";
         private MessageType simulatorMessageType =
             MessageType.Info;
+        private string simulatorResponse = string.Empty;
+        private IReadOnlyList<ICommandTestCatalogSource> catalogSources =
+            new List<ICommandTestCatalogSource>();
+        private CommandTestCatalog catalog;
+        private string selectedCatalogSourceId = string.Empty;
+        private int selectedCatalogSourceIndex;
+        private int selectedScenarioIndex;
+        private int observedCatalogRegistryVersion = -1;
+        private bool sending;
+        private CancellationTokenSource sendCancellation;
+        private long lastRevision;
+        private int nextCommandSequence;
+        private float automaticCommandDelaySeconds = 0.75f;
 
         [MenuItem(
             "Tools/Deucarian/Communication/Command Routing")]
@@ -57,6 +73,19 @@ namespace Deucarian.CommandRouting.Editor
         private void OnEnable()
         {
             RefreshSettings();
+            RefreshCatalogSources();
+        }
+
+        private void OnDisable()
+        {
+            sendCancellation?.Cancel();
+            sendCancellation?.Dispose();
+            sendCancellation = null;
+        }
+
+        private void OnInspectorUpdate()
+        {
+            Repaint();
         }
 
         private void OnGUI()
@@ -79,7 +108,7 @@ namespace Deucarian.CommandRouting.Editor
                     DrawSettings();
                     break;
                 case 2:
-                    DrawSimulator();
+                    DrawLiveTester();
                     break;
                 case 3:
                     DrawDiagnostics();
@@ -92,7 +121,7 @@ namespace Deucarian.CommandRouting.Editor
             EditorGUILayout.EndScrollView();
             DeucarianEditorChrome.DrawFooterVersion(
                 "Deucarian Command Routing",
-                "0.1.0");
+                "0.2.0");
         }
 
         private void DrawOverview()
@@ -210,10 +239,19 @@ namespace Deucarian.CommandRouting.Editor
             DrawValidationCard();
         }
 
-        private void DrawSimulator()
+        private void DrawLiveTester()
         {
+            if (observedCatalogRegistryVersion !=
+                CommandTestCatalogSourceRegistry.Version)
+            {
+                RefreshCatalogSources();
+            }
+
+            DrawLiveRoute();
+            DrawGeneratedScenarios();
+
             DeucarianEditorCards.DrawCard(
-                "Sanitized JSON envelope",
+                "Manual JSON envelope",
                 () =>
                 {
                     simulatorJson =
@@ -224,9 +262,16 @@ namespace Deucarian.CommandRouting.Editor
                     EditorGUILayout.BeginHorizontal();
                     if (DeucarianEditorButtons.Primary(
                             "Validate envelope",
-                            true))
+                            !sending))
                     {
                         ValidateSimulatorJson();
+                    }
+
+                    if (DeucarianEditorButtons.Primary(
+                            sending ? "Sending..." : "Send to running route",
+                            CanSendToLiveRoute()))
+                    {
+                        SendEnvelopeAsync(simulatorJson, null);
                     }
 
                     if (DeucarianEditorButtons.Secondary(
@@ -238,11 +283,130 @@ namespace Deucarian.CommandRouting.Editor
 
                     EditorGUILayout.EndHorizontal();
                 },
-                "Validation never dispatches application behavior.");
+                "The live action routes through the same scene port used by local integrations.");
 
             DeucarianEditorChrome.DrawInlineHelp(
                 simulatorResult,
                 simulatorMessageType);
+            if (!string.IsNullOrWhiteSpace(simulatorResponse))
+            {
+                DeucarianEditorCards.DrawCard(
+                    "Latest response",
+                    () => EditorGUILayout.TextArea(
+                        simulatorResponse,
+                        GUILayout.MinHeight(90f)));
+            }
+        }
+
+        private void DrawLiveRoute()
+        {
+            DeucarianEditorCards.DrawCard(
+                "Running command route",
+                () =>
+                {
+                    TryResolveLiveRoute(
+                        out CommandRoutePortBehaviour _,
+                        out string status);
+                    DeucarianEditorChrome.DrawInlineHelp(
+                        status,
+                        CanSendToLiveRoute()
+                            ? MessageType.Info
+                            : MessageType.Warning);
+                },
+                "Enter Play Mode and wait for exactly one initialized scene command port.");
+        }
+
+        private void DrawGeneratedScenarios()
+        {
+            DeucarianEditorCards.DrawCard(
+                "Generated scenarios",
+                () =>
+                {
+                    if (catalogSources.Count == 0)
+                    {
+                        DeucarianEditorChrome.DrawInlineHelp(
+                            "No package has registered a command test catalog for the current project.",
+                            MessageType.Info);
+                        return;
+                    }
+
+                    string[] sourceNames = new string[catalogSources.Count];
+                    for (int index = 0; index < catalogSources.Count; index++)
+                    {
+                        sourceNames[index] = catalogSources[index].DisplayName;
+                    }
+
+                    int sourceIndex = EditorGUILayout.Popup(
+                        "Catalog",
+                        selectedCatalogSourceIndex,
+                        sourceNames);
+                    if (sourceIndex != selectedCatalogSourceIndex)
+                    {
+                        selectedCatalogSourceIndex = sourceIndex;
+                        selectedCatalogSourceId =
+                            catalogSources[sourceIndex].Id;
+                        LoadSelectedCatalog();
+                    }
+
+                    if (DeucarianEditorButtons.Secondary("Refresh scenarios"))
+                    {
+                        LoadSelectedCatalog();
+                    }
+
+                    if (catalog == null || catalog.Scenarios.Count == 0)
+                    {
+                        return;
+                    }
+
+                    string[] scenarioNames =
+                        new string[catalog.Scenarios.Count];
+                    for (int index = 0;
+                         index < catalog.Scenarios.Count;
+                         index++)
+                    {
+                        scenarioNames[index] = catalog.Scenarios[index].Label;
+                    }
+
+                    selectedScenarioIndex = EditorGUILayout.Popup(
+                        "Scenario",
+                        Math.Min(
+                            selectedScenarioIndex,
+                            catalog.Scenarios.Count - 1),
+                        scenarioNames);
+                    CommandTestScenario selected =
+                        catalog.Scenarios[selectedScenarioIndex];
+                    EditorGUILayout.LabelField(
+                        "Command",
+                        selected.CommandName);
+                    EditorGUILayout.TextArea(
+                        selected.Payload.ToString(Formatting.Indented),
+                        GUILayout.MinHeight(80f));
+
+                    automaticCommandDelaySeconds = EditorGUILayout.Slider(
+                        "Sequence delay",
+                        automaticCommandDelaySeconds,
+                        0.1f,
+                        2f);
+
+                    using (new EditorGUILayout.HorizontalScope())
+                    {
+                        if (DeucarianEditorButtons.Primary(
+                                sending ? "Sending..." : "Send selected",
+                                CanSendToLiveRoute()))
+                        {
+                            SendScenarioAsync(selected);
+                        }
+
+                        if (DeucarianEditorButtons.Primary(
+                                sending ? "Running..." : "Run automatic sequence",
+                                CanSendToLiveRoute() &&
+                                HasAutomaticScenarios()))
+                        {
+                            RunAutomaticSequenceAsync();
+                        }
+                    }
+                },
+                "Scenario providers own the examples; Command Routing only sends them.");
         }
 
         private void DrawDiagnostics()
@@ -338,6 +502,364 @@ namespace Deucarian.CommandRouting.Editor
                 "'. Sanitized envelope:\n" +
                 sanitized?.ToString(Formatting.Indented);
             simulatorMessageType = MessageType.Info;
+        }
+
+        private void RefreshCatalogSources()
+        {
+            catalogSources = CommandTestCatalogSourceRegistry.Sources;
+            observedCatalogRegistryVersion =
+                CommandTestCatalogSourceRegistry.Version;
+            if (catalogSources.Count == 0)
+            {
+                selectedCatalogSourceIndex = 0;
+                selectedCatalogSourceId = string.Empty;
+                catalog = null;
+                return;
+            }
+
+            int matchingIndex = -1;
+            for (int index = 0; index < catalogSources.Count; index++)
+            {
+                if (string.Equals(
+                        catalogSources[index].Id,
+                        selectedCatalogSourceId,
+                        StringComparison.Ordinal))
+                {
+                    matchingIndex = index;
+                    break;
+                }
+            }
+
+            selectedCatalogSourceIndex = matchingIndex >= 0
+                ? matchingIndex
+                : 0;
+            selectedCatalogSourceId =
+                catalogSources[selectedCatalogSourceIndex].Id;
+            LoadSelectedCatalog();
+        }
+
+        private void LoadSelectedCatalog()
+        {
+            catalog = null;
+            selectedScenarioIndex = 0;
+            if (catalogSources.Count == 0 ||
+                selectedCatalogSourceIndex < 0 ||
+                selectedCatalogSourceIndex >= catalogSources.Count)
+            {
+                simulatorResult = "No command test catalog is available.";
+                simulatorMessageType = MessageType.Info;
+                return;
+            }
+
+            ICommandTestCatalogSource source =
+                catalogSources[selectedCatalogSourceIndex];
+            if (!source.TryGetCatalogJson(out string json, out string error))
+            {
+                simulatorResult = string.IsNullOrWhiteSpace(error)
+                    ? "The command test catalog could not be loaded."
+                    : error;
+                simulatorMessageType = MessageType.Warning;
+                return;
+            }
+
+            if (!CommandTestCatalog.TryParse(json, out catalog, out error))
+            {
+                simulatorResult = error;
+                simulatorMessageType = MessageType.Error;
+                return;
+            }
+
+            simulatorResult = "Loaded " + catalog.Scenarios.Count +
+                              " scenarios from " + source.DisplayName + ".";
+            simulatorMessageType = MessageType.Info;
+        }
+
+        private bool HasAutomaticScenarios()
+        {
+            if (catalog == null)
+            {
+                return false;
+            }
+
+            for (int index = 0; index < catalog.Scenarios.Count; index++)
+            {
+                if (catalog.Scenarios[index].RunAutomatically)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private bool CanSendToLiveRoute()
+        {
+            return !sending && TryResolveLiveRoute(
+                out CommandRoutePortBehaviour _,
+                out string _);
+        }
+
+        private static bool TryResolveLiveRoute(
+            out CommandRoutePortBehaviour route,
+            out string status)
+        {
+            route = null;
+            if (!EditorApplication.isPlaying)
+            {
+                status = "Enter Play Mode to send commands to the running application.";
+                return false;
+            }
+
+            CommandRoutePortBehaviour[] candidates =
+                Resources.FindObjectsOfTypeAll<CommandRoutePortBehaviour>();
+            int readyCount = 0;
+            for (int index = 0; index < candidates.Length; index++)
+            {
+                CommandRoutePortBehaviour candidate = candidates[index];
+                if (candidate == null || !candidate.IsReady ||
+                    !candidate.gameObject.scene.IsValid() ||
+                    !candidate.gameObject.scene.isLoaded ||
+                    EditorUtility.IsPersistent(candidate))
+                {
+                    continue;
+                }
+
+                readyCount++;
+                route = candidate;
+            }
+
+            if (readyCount == 1)
+            {
+                status = "Ready: " + route.gameObject.name +
+                         " in scene " + route.gameObject.scene.name + ".";
+                return true;
+            }
+
+            route = null;
+            status = readyCount == 0
+                ? "Waiting for one initialized scene command port."
+                : "Found " + readyCount +
+                  " initialized command ports. Keep exactly one running for live testing.";
+            return false;
+        }
+
+        private async void SendScenarioAsync(CommandTestScenario scenario)
+        {
+            if (scenario == null || sending)
+            {
+                return;
+            }
+
+            string envelope = CreateScenarioEnvelope(scenario);
+            simulatorJson = envelope;
+            await RunSingleSendAsync(
+                envelope,
+                scenario.Label,
+                scenario.ExpectedSuccess);
+        }
+
+        private async void SendEnvelopeAsync(
+            string envelope,
+            bool? expectedSuccess)
+        {
+            if (sending)
+            {
+                return;
+            }
+
+            await RunSingleSendAsync(
+                envelope,
+                "Manual command",
+                expectedSuccess);
+        }
+
+        private async Task RunSingleSendAsync(
+            string envelope,
+            string label,
+            bool? expectedSuccess)
+        {
+            BeginSending();
+            try
+            {
+                CommandRouteOutcome outcome = await RouteAsync(
+                    envelope,
+                    sendCancellation.Token);
+                ApplyOutcome(label, outcome, expectedSuccess);
+            }
+            catch (OperationCanceledException)
+            {
+                simulatorResult = "Command testing was cancelled.";
+                simulatorMessageType = MessageType.Info;
+            }
+            catch (Exception exception)
+            {
+                simulatorResult = "Command testing failed with " +
+                                  exception.GetType().Name + ".";
+                simulatorMessageType = MessageType.Error;
+            }
+            finally
+            {
+                EndSending();
+            }
+        }
+
+        private async void RunAutomaticSequenceAsync()
+        {
+            if (sending || catalog == null)
+            {
+                return;
+            }
+
+            BeginSending();
+            int completed = 0;
+            try
+            {
+                for (int index = 0; index < catalog.Scenarios.Count; index++)
+                {
+                    CommandTestScenario scenario = catalog.Scenarios[index];
+                    if (!scenario.RunAutomatically)
+                    {
+                        continue;
+                    }
+
+                    string envelope = CreateScenarioEnvelope(scenario);
+                    simulatorJson = envelope;
+                    simulatorResult = "Running " + scenario.Label + "...";
+                    simulatorMessageType = MessageType.Info;
+                    Repaint();
+
+                    CommandRouteOutcome outcome = await RouteAsync(
+                        envelope,
+                        sendCancellation.Token);
+                    bool matched = outcome?.Result?.Succeeded ==
+                                   scenario.ExpectedSuccess;
+                    ApplyOutcome(
+                        scenario.Label,
+                        outcome,
+                        scenario.ExpectedSuccess);
+                    if (!matched)
+                    {
+                        simulatorResult = "Automatic sequence stopped at '" +
+                                          scenario.Label + "'. " +
+                                          simulatorResult;
+                        return;
+                    }
+
+                    completed++;
+                    await Task.Delay(
+                        Math.Max(
+                            100,
+                            (int)(automaticCommandDelaySeconds * 1000f)),
+                        sendCancellation.Token);
+                }
+
+                simulatorResult = "Automatic sequence completed: " +
+                                  completed + " scenarios matched expectations.";
+                simulatorMessageType = MessageType.Info;
+            }
+            catch (OperationCanceledException)
+            {
+                simulatorResult = "Automatic command testing was cancelled.";
+                simulatorMessageType = MessageType.Info;
+            }
+            catch (Exception exception)
+            {
+                simulatorResult = "Automatic command testing failed with " +
+                                  exception.GetType().Name + ".";
+                simulatorMessageType = MessageType.Error;
+            }
+            finally
+            {
+                EndSending();
+            }
+        }
+
+        private string CreateScenarioEnvelope(CommandTestScenario scenario)
+        {
+            long timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            lastRevision = Math.Max(timestamp, lastRevision + 1L);
+            nextCommandSequence++;
+            return CommandTestEnvelopeBuilder.Create(
+                scenario,
+                lastRevision,
+                0L,
+                "unity-editor-" + nextCommandSequence);
+        }
+
+        private static async Task<CommandRouteOutcome> RouteAsync(
+            string envelope,
+            CancellationToken cancellationToken)
+        {
+            if (!TryResolveLiveRoute(
+                    out CommandRoutePortBehaviour route,
+                    out string status))
+            {
+                return new CommandRouteOutcome(
+                    null,
+                    CommandResult.Failure(
+                        CommandRoutingErrorCodes.RouteUnavailable,
+                        status),
+                    string.Empty);
+            }
+
+            return await route.RouteMessageAsync(
+                envelope,
+                "editor-local",
+                "command-tester",
+                cancellationToken);
+        }
+
+        private void ApplyOutcome(
+            string label,
+            CommandRouteOutcome outcome,
+            bool? expectedSuccess)
+        {
+            CommandResult result = outcome?.Result ??
+                CommandResult.Failure(
+                    CommandRoutingErrorCodes.RouteUnavailable,
+                    "The command route returned no result.");
+            bool matched = !expectedSuccess.HasValue ||
+                           result.Succeeded == expectedSuccess.Value;
+            string actual = result.Succeeded
+                ? "succeeded"
+                : "failed" +
+                  (string.IsNullOrWhiteSpace(result.ErrorCode)
+                      ? string.Empty
+                      : " with '" + result.ErrorCode + "'");
+            simulatorResult = label + " " + actual + "." +
+                              (string.IsNullOrWhiteSpace(result.Message)
+                                  ? string.Empty
+                                  : " " + result.Message);
+            if (expectedSuccess.HasValue && !matched)
+            {
+                simulatorResult += expectedSuccess.Value
+                    ? " Success was expected."
+                    : " Failure was expected.";
+            }
+
+            simulatorMessageType = matched
+                ? MessageType.Info
+                : MessageType.Error;
+            simulatorResponse = outcome?.Response ?? string.Empty;
+            Repaint();
+        }
+
+        private void BeginSending()
+        {
+            sendCancellation?.Cancel();
+            sendCancellation?.Dispose();
+            sendCancellation = new CancellationTokenSource();
+            sending = true;
+            simulatorResponse = string.Empty;
+            Repaint();
+        }
+
+        private void EndSending()
+        {
+            sendCancellation?.Dispose();
+            sendCancellation = null;
+            sending = false;
+            Repaint();
         }
 
         private void RefreshSettings()

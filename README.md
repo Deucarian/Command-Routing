@@ -51,9 +51,17 @@ Open:
 
 `Tools > Deucarian > Communication > Command Routing`
 
-The single management window owns settings creation, protocol simulation,
-runtime diagnostics, and validation. It uses `com.deucarian.editor` for all
-visual styling.
+The single management window owns settings creation, live command testing,
+runtime diagnostics, and validation. Its **Live Tester** tab can validate or
+send a manual JSON envelope through the initialized scene route while the
+application is in Play Mode.
+
+Other packages can register an `ICommandTestCatalogSource`. Generated scenarios
+then appear in the same tab and can be sent individually or executed as an
+ordered automatic sequence. Command Routing owns dispatch and results; the
+provider package remains responsible for command-specific examples.
+
+The window uses `com.deucarian.editor` for all visual styling.
 
 ## Protocol
 
