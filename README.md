@@ -59,7 +59,8 @@ application is in Play Mode.
 Other packages can register an `ICommandTestCatalogSource`. Generated scenarios
 then appear in the same tab and can be sent individually or executed as an
 ordered automatic sequence. Command Routing owns dispatch and results; the
-provider package remains responsible for command-specific examples.
+provider package remains responsible for command-specific examples and can
+declare the endpoint that its running transport expects.
 
 The window uses `com.deucarian.editor` for all visual styling.
 

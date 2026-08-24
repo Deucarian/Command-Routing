@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1] - 2026-08-25
+
+### Fixed
+
+- Let generated command catalogs declare the runtime endpoint used by the live
+  Editor route, while preserving the generic local endpoint as the default.
+
 ## [0.2.0] - 2026-08-24
 
 ### Added
