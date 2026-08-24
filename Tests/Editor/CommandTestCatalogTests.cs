@@ -26,11 +26,31 @@ namespace Deucarian.CommandRouting.Tests
                 error);
 
             Assert.That(catalog.SchemaVersion, Is.EqualTo(1));
+            Assert.That(catalog.RemoteEndpoint, Is.EqualTo("direct"));
             Assert.That(catalog.Scenarios, Has.Count.EqualTo(1));
             Assert.That(
                 catalog.Scenarios[0].CommandName,
                 Is.EqualTo("select_activity"));
             Assert.That(catalog.Scenarios[0].RunAutomatically, Is.True);
+        }
+
+        [Test]
+        public void UsesLocalEndpointWhenCatalogDoesNotDeclareOne()
+        {
+            string json = CatalogJson().Replace(
+                "  \"remote_endpoint\": \"direct\",\n",
+                string.Empty);
+
+            Assert.That(
+                CommandTestCatalog.TryParse(
+                    json,
+                    out CommandTestCatalog catalog,
+                    out string error),
+                Is.True,
+                error);
+            Assert.That(
+                catalog.RemoteEndpoint,
+                Is.EqualTo(CommandTestCatalog.DefaultRemoteEndpoint));
         }
 
         [Test]
@@ -98,6 +118,7 @@ namespace Deucarian.CommandRouting.Tests
             return
                 "{\n" +
                 "  \"schema_version\": 1,\n" +
+                "  \"remote_endpoint\": \"direct\",\n" +
                 "  \"scenarios\": [\n" +
                 "    {\n" +
                 "      \"id\": \"select-inspection\",\n" +

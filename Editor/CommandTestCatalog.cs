@@ -55,8 +55,14 @@ namespace Deucarian.CommandRouting.Editor
     [Serializable]
     public sealed class CommandTestCatalog
     {
+        public const string DefaultRemoteEndpoint = "command-tester";
+
         [JsonProperty("schema_version")]
         public int SchemaVersion { get; private set; }
+
+        [JsonProperty("remote_endpoint")]
+        public string RemoteEndpoint { get; private set; } =
+            DefaultRemoteEndpoint;
 
         [JsonProperty("scenarios")]
         public List<CommandTestScenario> Scenarios { get; private set; } =
@@ -98,6 +104,11 @@ namespace Deucarian.CommandRouting.Editor
                 catalog = null;
                 return false;
             }
+
+            catalog.RemoteEndpoint = string.IsNullOrWhiteSpace(
+                catalog.RemoteEndpoint)
+                ? DefaultRemoteEndpoint
+                : catalog.RemoteEndpoint.Trim();
 
             catalog.Scenarios = catalog.Scenarios ??
                                 new List<CommandTestScenario>();

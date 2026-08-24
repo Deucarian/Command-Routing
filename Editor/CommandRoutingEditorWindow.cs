@@ -570,7 +570,8 @@ namespace Deucarian.CommandRouting.Editor
             }
 
             simulatorResult = "Loaded " + catalog.Scenarios.Count +
-                              " scenarios from " + source.DisplayName + ".";
+                              " scenarios from " + source.DisplayName +
+                              " for endpoint " + catalog.RemoteEndpoint + ".";
             simulatorMessageType = MessageType.Info;
         }
 
@@ -683,6 +684,7 @@ namespace Deucarian.CommandRouting.Editor
             {
                 CommandRouteOutcome outcome = await RouteAsync(
                     envelope,
+                    ResolveRemoteEndpoint(),
                     sendCancellation.Token);
                 ApplyOutcome(label, outcome, expectedSuccess);
             }
@@ -730,6 +732,7 @@ namespace Deucarian.CommandRouting.Editor
 
                     CommandRouteOutcome outcome = await RouteAsync(
                         envelope,
+                        ResolveRemoteEndpoint(),
                         sendCancellation.Token);
                     bool matched = outcome?.Result?.Succeeded ==
                                    scenario.ExpectedSuccess;
@@ -786,8 +789,14 @@ namespace Deucarian.CommandRouting.Editor
                 "unity-editor-" + nextCommandSequence);
         }
 
+        private string ResolveRemoteEndpoint() =>
+            catalog == null || string.IsNullOrWhiteSpace(catalog.RemoteEndpoint)
+                ? CommandTestCatalog.DefaultRemoteEndpoint
+                : catalog.RemoteEndpoint;
+
         private static async Task<CommandRouteOutcome> RouteAsync(
             string envelope,
+            string remoteEndpoint,
             CancellationToken cancellationToken)
         {
             if (!TryResolveLiveRoute(
@@ -805,7 +814,7 @@ namespace Deucarian.CommandRouting.Editor
             return await route.RouteMessageAsync(
                 envelope,
                 "editor-local",
-                "command-tester",
+                remoteEndpoint,
                 cancellationToken);
         }
 
