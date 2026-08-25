@@ -64,6 +64,9 @@ namespace Deucarian.CommandRouting.Editor
         public string RemoteEndpoint { get; private set; } =
             DefaultRemoteEndpoint;
 
+        [JsonProperty("default_scenario_id")]
+        public string DefaultScenarioId { get; private set; } = string.Empty;
+
         [JsonProperty("scenarios")]
         public List<CommandTestScenario> Scenarios { get; private set; } =
             new List<CommandTestScenario>();
@@ -109,6 +112,10 @@ namespace Deucarian.CommandRouting.Editor
                 catalog.RemoteEndpoint)
                 ? DefaultRemoteEndpoint
                 : catalog.RemoteEndpoint.Trim();
+            catalog.DefaultScenarioId = string.IsNullOrWhiteSpace(
+                catalog.DefaultScenarioId)
+                ? string.Empty
+                : catalog.DefaultScenarioId.Trim();
 
             catalog.Scenarios = catalog.Scenarios ??
                                 new List<CommandTestScenario>();
@@ -138,8 +145,43 @@ namespace Deucarian.CommandRouting.Editor
                 }
             }
 
+            if (catalog.DefaultScenarioId.Length > 0 &&
+                !ids.Contains(catalog.DefaultScenarioId))
+            {
+                error = "Default command test scenario '" +
+                        catalog.DefaultScenarioId + "' does not exist.";
+                catalog = null;
+                return false;
+            }
+
             error = string.Empty;
             return true;
+        }
+
+        public int ResolveDefaultScenarioIndex()
+        {
+            if (Scenarios == null || Scenarios.Count == 0)
+            {
+                return -1;
+            }
+
+            if (DefaultScenarioId.Length == 0)
+            {
+                return 0;
+            }
+
+            for (int index = 0; index < Scenarios.Count; index++)
+            {
+                if (string.Equals(
+                        Scenarios[index].Id,
+                        DefaultScenarioId,
+                        StringComparison.Ordinal))
+                {
+                    return index;
+                }
+            }
+
+            return 0;
         }
     }
 

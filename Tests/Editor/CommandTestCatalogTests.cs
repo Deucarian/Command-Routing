@@ -27,6 +27,10 @@ namespace Deucarian.CommandRouting.Tests
 
             Assert.That(catalog.SchemaVersion, Is.EqualTo(1));
             Assert.That(catalog.RemoteEndpoint, Is.EqualTo("direct"));
+            Assert.That(
+                catalog.DefaultScenarioId,
+                Is.EqualTo("select-inspection"));
+            Assert.That(catalog.ResolveDefaultScenarioIndex(), Is.Zero);
             Assert.That(catalog.Scenarios, Has.Count.EqualTo(1));
             Assert.That(
                 catalog.Scenarios[0].CommandName,
@@ -76,6 +80,19 @@ namespace Deucarian.CommandRouting.Tests
         }
 
         [Test]
+        public void RejectsMissingDefaultScenario()
+        {
+            string json = CatalogJson().Replace(
+                "\"default_scenario_id\": \"select-inspection\"",
+                "\"default_scenario_id\": \"missing\"");
+
+            Assert.That(
+                CommandTestCatalog.TryParse(json, out _, out string error),
+                Is.False);
+            Assert.That(error, Does.Contain("does not exist"));
+        }
+
+        [Test]
         public void BuildsEnvelopeWithResolvedRevisionTokens()
         {
             CommandTestCatalog.TryParse(
@@ -119,6 +136,7 @@ namespace Deucarian.CommandRouting.Tests
                 "{\n" +
                 "  \"schema_version\": 1,\n" +
                 "  \"remote_endpoint\": \"direct\",\n" +
+                "  \"default_scenario_id\": \"select-inspection\",\n" +
                 "  \"scenarios\": [\n" +
                 "    {\n" +
                 "      \"id\": \"select-inspection\",\n" +

@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.2] - 2026-08-25
+
+### Changed
+
+- Made the live tester center on one editable, exact command envelope with a
+  single send action and a compact viewer connection state.
+- Moved generated sequences behind an optional automated-checks foldout and
+  let catalogs nominate the example loaded into the command editor.
+
 ## [0.2.1] - 2026-08-25
 
 ### Fixed

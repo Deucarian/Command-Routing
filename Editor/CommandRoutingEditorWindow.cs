@@ -57,6 +57,7 @@ namespace Deucarian.CommandRouting.Editor
         private long lastRevision;
         private int nextCommandSequence;
         private float automaticCommandDelaySeconds = 0.75f;
+        private bool showAutomatedChecks;
 
         [MenuItem(
             "Tools/Deucarian/Communication/Command Routing")]
@@ -121,7 +122,7 @@ namespace Deucarian.CommandRouting.Editor
             EditorGUILayout.EndScrollView();
             DeucarianEditorChrome.DrawFooterVersion(
                 "Deucarian Command Routing",
-                "0.2.1");
+                "0.2.2");
         }
 
         private void DrawOverview()
@@ -247,43 +248,7 @@ namespace Deucarian.CommandRouting.Editor
                 RefreshCatalogSources();
             }
 
-            DrawLiveRoute();
-            DrawGeneratedScenarios();
-
-            DeucarianEditorCards.DrawCard(
-                "Manual JSON envelope",
-                () =>
-                {
-                    simulatorJson =
-                        EditorGUILayout.TextArea(
-                            simulatorJson,
-                            GUILayout.MinHeight(190f));
-                    GUILayout.Space(6f);
-                    EditorGUILayout.BeginHorizontal();
-                    if (DeucarianEditorButtons.Primary(
-                            "Validate envelope",
-                            !sending))
-                    {
-                        ValidateSimulatorJson();
-                    }
-
-                    if (DeucarianEditorButtons.Primary(
-                            sending ? "Sending..." : "Send to running route",
-                            CanSendToLiveRoute()))
-                    {
-                        SendEnvelopeAsync(simulatorJson, null);
-                    }
-
-                    if (DeucarianEditorButtons.Secondary(
-                            "Copy Python example"))
-                    {
-                        EditorGUIUtility.systemCopyBuffer =
-                            CreatePythonExample();
-                    }
-
-                    EditorGUILayout.EndHorizontal();
-                },
-                "The live action routes through the same scene port used by local integrations.");
+            DrawCommandComposer();
 
             DeucarianEditorChrome.DrawInlineHelp(
                 simulatorResult,
@@ -294,14 +259,24 @@ namespace Deucarian.CommandRouting.Editor
                     "Latest response",
                     () => EditorGUILayout.TextArea(
                         simulatorResponse,
-                        GUILayout.MinHeight(90f)));
+                        GUILayout.MinHeight(72f)));
+            }
+
+            GUILayout.Space(4f);
+            showAutomatedChecks = EditorGUILayout.Foldout(
+                showAutomatedChecks,
+                "Automated checks",
+                true);
+            if (showAutomatedChecks)
+            {
+                DrawAutomatedChecks();
             }
         }
 
-        private void DrawLiveRoute()
+        private void DrawCommandComposer()
         {
             DeucarianEditorCards.DrawCard(
-                "Running command route",
+                "Backoffice command",
                 () =>
                 {
                     TryResolveLiveRoute(
@@ -312,14 +287,70 @@ namespace Deucarian.CommandRouting.Editor
                         CanSendToLiveRoute()
                             ? MessageType.Info
                             : MessageType.Warning);
+                    GUILayout.Space(6f);
+                    DrawExamplePicker();
+                    GUILayout.Space(6f);
+                    EditorGUILayout.LabelField(
+                        "Exact JSON envelope",
+                        EditorStyles.miniLabel);
+                    simulatorJson =
+                        EditorGUILayout.TextArea(
+                            simulatorJson,
+                            GUILayout.MinHeight(180f));
+                    GUILayout.Space(8f);
+                    EditorGUILayout.BeginHorizontal();
+                    if (DeucarianEditorButtons.Primary(
+                            sending ? "Sending..." : "Send command",
+                            CanSendToLiveRoute()))
+                    {
+                        SendEnvelopeAsync(simulatorJson, null);
+                    }
+
+                    if (DeucarianEditorButtons.Secondary(
+                            "Validate JSON"))
+                    {
+                        ValidateSimulatorJson();
+                    }
+
+                    EditorGUILayout.EndHorizontal();
                 },
-                "Enter Play Mode and wait for exactly one initialized scene command port.");
+                "Paste the complete envelope sent by the host. It is routed unchanged to the running viewer.");
         }
 
-        private void DrawGeneratedScenarios()
+        private void DrawExamplePicker()
+        {
+            if (catalogSources.Count == 0 ||
+                catalog == null ||
+                catalog.Scenarios.Count == 0)
+            {
+                return;
+            }
+
+            string[] scenarioNames = new string[catalog.Scenarios.Count];
+            for (int index = 0; index < catalog.Scenarios.Count; index++)
+            {
+                scenarioNames[index] = catalog.Scenarios[index].Label;
+            }
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                selectedScenarioIndex = EditorGUILayout.Popup(
+                    "Example",
+                    Math.Min(
+                        selectedScenarioIndex,
+                        catalog.Scenarios.Count - 1),
+                    scenarioNames);
+                if (DeucarianEditorButtons.Secondary("Load example"))
+                {
+                    LoadSelectedScenarioIntoEditor();
+                }
+            }
+        }
+
+        private void DrawAutomatedChecks()
         {
             DeucarianEditorCards.DrawCard(
-                "Generated scenarios",
+                "Generated test sequence",
                 () =>
                 {
                     if (catalogSources.Count == 0)
@@ -358,32 +389,8 @@ namespace Deucarian.CommandRouting.Editor
                         return;
                     }
 
-                    string[] scenarioNames =
-                        new string[catalog.Scenarios.Count];
-                    for (int index = 0;
-                         index < catalog.Scenarios.Count;
-                         index++)
-                    {
-                        scenarioNames[index] = catalog.Scenarios[index].Label;
-                    }
-
-                    selectedScenarioIndex = EditorGUILayout.Popup(
-                        "Scenario",
-                        Math.Min(
-                            selectedScenarioIndex,
-                            catalog.Scenarios.Count - 1),
-                        scenarioNames);
-                    CommandTestScenario selected =
-                        catalog.Scenarios[selectedScenarioIndex];
-                    EditorGUILayout.LabelField(
-                        "Command",
-                        selected.CommandName);
-                    EditorGUILayout.TextArea(
-                        selected.Payload.ToString(Formatting.Indented),
-                        GUILayout.MinHeight(80f));
-
                     automaticCommandDelaySeconds = EditorGUILayout.Slider(
-                        "Sequence delay",
+                        "Delay between commands",
                         automaticCommandDelaySeconds,
                         0.1f,
                         2f);
@@ -391,14 +398,7 @@ namespace Deucarian.CommandRouting.Editor
                     using (new EditorGUILayout.HorizontalScope())
                     {
                         if (DeucarianEditorButtons.Primary(
-                                sending ? "Sending..." : "Send selected",
-                                CanSendToLiveRoute()))
-                        {
-                            SendScenarioAsync(selected);
-                        }
-
-                        if (DeucarianEditorButtons.Primary(
-                                sending ? "Running..." : "Run automatic sequence",
+                                sending ? "Running..." : "Run all checks",
                                 CanSendToLiveRoute() &&
                                 HasAutomaticScenarios()))
                         {
@@ -406,7 +406,7 @@ namespace Deucarian.CommandRouting.Editor
                         }
                     }
                 },
-                "Scenario providers own the examples; Command Routing only sends them.");
+                "Runs the package-provided command flow against the same live viewer route.");
         }
 
         private void DrawDiagnostics()
@@ -569,10 +569,36 @@ namespace Deucarian.CommandRouting.Editor
                 return;
             }
 
-            simulatorResult = "Loaded " + catalog.Scenarios.Count +
-                              " scenarios from " + source.DisplayName +
-                              " for endpoint " + catalog.RemoteEndpoint + ".";
+            selectedScenarioIndex = catalog.ResolveDefaultScenarioIndex();
+            if (selectedScenarioIndex >= 0)
+            {
+                LoadSelectedScenarioIntoEditor();
+                return;
+            }
+
+            simulatorResult = "No command examples are available from " +
+                              source.DisplayName + ".";
             simulatorMessageType = MessageType.Info;
+        }
+
+        private void LoadSelectedScenarioIntoEditor()
+        {
+            if (catalog == null || catalog.Scenarios.Count == 0)
+            {
+                return;
+            }
+
+            selectedScenarioIndex = Math.Max(
+                0,
+                Math.Min(
+                    selectedScenarioIndex,
+                    catalog.Scenarios.Count - 1));
+            CommandTestScenario scenario =
+                catalog.Scenarios[selectedScenarioIndex];
+            simulatorJson = CreateScenarioEnvelope(scenario);
+            simulatorResult = "Ready to send '" + scenario.Label + "'.";
+            simulatorMessageType = MessageType.Info;
+            simulatorResponse = string.Empty;
         }
 
         private bool HasAutomaticScenarios()
@@ -642,21 +668,6 @@ namespace Deucarian.CommandRouting.Editor
                 : "Found " + readyCount +
                   " initialized command ports. Keep exactly one running for live testing.";
             return false;
-        }
-
-        private async void SendScenarioAsync(CommandTestScenario scenario)
-        {
-            if (scenario == null || sending)
-            {
-                return;
-            }
-
-            string envelope = CreateScenarioEnvelope(scenario);
-            simulatorJson = envelope;
-            await RunSingleSendAsync(
-                envelope,
-                scenario.Label,
-                scenario.ExpectedSuccess);
         }
 
         private async void SendEnvelopeAsync(
@@ -908,18 +919,5 @@ namespace Deucarian.CommandRouting.Editor
             EditorGUIUtility.PingObject(settings);
         }
 
-        private static string CreatePythonExample()
-        {
-            return
-                "import json\n\n" +
-                "command = {\n" +
-                "    \"protocol_version\": 1,\n" +
-                "    \"command_id\": \"python-1\",\n" +
-                "    \"command\": \"example_command\",\n" +
-                "    \"payload\": {},\n" +
-                "    \"metadata\": {\"source\": \"python\"},\n" +
-                "}\n\n" +
-                "message = json.dumps(command)\n";
-        }
     }
 }
