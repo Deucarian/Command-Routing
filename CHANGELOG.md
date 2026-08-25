@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.3] - 2026-08-25
+
+### Added
+
+- Added a generic catalog-change notification so package-provided command
+  scenarios can refresh live when their source data changes.
+
 ## [0.2.2] - 2026-08-25
 
 ### Changed

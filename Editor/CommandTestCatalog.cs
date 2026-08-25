@@ -234,6 +234,15 @@ namespace Deucarian.CommandRouting.Editor
 
             Version++;
         }
+
+        /// <summary>
+        /// Notifies editor consumers that one or more registered catalog
+        /// sources now produce different scenario data.
+        /// </summary>
+        public static void NotifyCatalogChanged()
+        {
+            Version++;
+        }
     }
 
     public static class CommandTestEnvelopeBuilder
