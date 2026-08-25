@@ -130,6 +130,18 @@ namespace Deucarian.CommandRouting.Tests
                     .EqualTo(SourceId));
         }
 
+        [Test]
+        public void CatalogChangeNotificationInvalidatesEditorConsumers()
+        {
+            int previousVersion = CommandTestCatalogSourceRegistry.Version;
+
+            CommandTestCatalogSourceRegistry.NotifyCatalogChanged();
+
+            Assert.That(
+                CommandTestCatalogSourceRegistry.Version,
+                Is.EqualTo(previousVersion + 1));
+        }
+
         private static string CatalogJson()
         {
             return
