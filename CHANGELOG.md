@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.4] - 2026-08-26
+
+### Changed
+
+- Derived the editor workflow footer from installed package metadata instead
+  of a hardcoded package version.
+- Updated the exact Diagnostics, Editor, and Logging dependencies for the
+  coordinated editor UX release.
+
 ## [0.2.3] - 2026-08-25
 
 ### Added
