@@ -1,6 +1,6 @@
 {
   "name": "com.deucarian.command-routing",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "displayName": "Deucarian Command Routing",
   "description": "Transport-independent command routing, JSON protocol, diagnostics, logging, and editor tooling for Unity.",
   "unity": "2021.3",
@@ -21,9 +21,9 @@
     "diagnostics"
   ],
   "dependencies": {
-    "com.deucarian.diagnostics": "0.1.4",
-    "com.deucarian.editor": "1.0.5",
-    "com.deucarian.logging": "1.0.2",
+    "com.deucarian.diagnostics": "0.1.5",
+    "com.deucarian.editor": "1.1.0",
+    "com.deucarian.logging": "1.0.3",
     "com.unity.nuget.newtonsoft-json": "3.2.2"
   },
   "samples": [
