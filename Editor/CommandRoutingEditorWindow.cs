@@ -121,8 +121,7 @@ namespace Deucarian.CommandRouting.Editor
 
             EditorGUILayout.EndScrollView();
             DeucarianEditorChrome.DrawFooterVersion(
-                "Deucarian Command Routing",
-                "0.2.2");
+                "com.deucarian.command-routing");
         }
 
         private void DrawOverview()
