@@ -2,6 +2,7 @@
   "name": "Deucarian.CommandRouting.Tests",
   "rootNamespace": "Deucarian.CommandRouting.Tests",
   "references": [
+    "Deucarian.Editor",
     "Deucarian.CommandRouting",
     "Deucarian.CommandRouting.Editor",
     "Deucarian.Diagnostics",
