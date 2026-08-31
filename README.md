@@ -49,7 +49,7 @@ services; the owning composition root must initialize it explicitly.
 
 Open:
 
-`Tools > Deucarian > Communication > Command Routing`
+**Deucarian Control Center > Communication > Command Routing**
 
 The single management window owns settings creation, live command testing,
 runtime diagnostics, and validation. Its **Live Tester** tab can validate or
