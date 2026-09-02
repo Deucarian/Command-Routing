@@ -38,6 +38,17 @@ The runtime registers a sanitized diagnostics provider, uses
 `Deucarian.Logging`, rejects duplicate command names, and keeps a bounded
 redacted history.
 
+Subscribe to `RouteCompleted` when a composition root needs one
+transport-neutral observation point for every route outcome, including
+protocol rejections that do not reach a handler. The event provides the
+`CommandRouteOutcome`, effective transport and endpoint, and a bounded
+duration. Subscriber failures never change routing results or prevent
+other subscribers from being notified, and every subscriber receives a
+defensive outcome snapshot so mutable JSON cannot affect another observer or
+the caller. The dispatcher's existing `CommandCompleted` event remains the
+handler-dispatch-specific contract; its established exception behavior is
+preserved while the route completion still fires exactly once.
+
 Every runtime also implements `ICommandRoutePort`. A composition root may
 inject that port into `CommandRoutePortBehaviour` when a scene-owned local
 ingress is useful—for example, an editor development profile can submit the
