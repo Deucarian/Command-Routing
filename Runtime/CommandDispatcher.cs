@@ -57,6 +57,18 @@ namespace Deucarian.CommandRouting
             CommandEnvelope command,
             CancellationToken cancellationToken = default)
         {
+            return await DispatchAsync(
+                    command,
+                    cancellationToken,
+                    null)
+                .ConfigureAwait(false);
+        }
+
+        internal async Task<CommandResult> DispatchAsync(
+            CommandEnvelope command,
+            CancellationToken cancellationToken,
+            Action<CommandDispatchEventArgs> completionObserver)
+        {
             var stopwatch = Stopwatch.StartNew();
             CommandResult result;
 
@@ -69,7 +81,8 @@ namespace Deucarian.CommandRouting
                 return Complete(
                     command,
                     result,
-                    stopwatch);
+                    stopwatch,
+                    completionObserver);
             }
 
             if (!registry.TryResolve(
@@ -86,7 +99,8 @@ namespace Deucarian.CommandRouting
                 return Complete(
                     command,
                     result,
-                    stopwatch);
+                    stopwatch,
+                    completionObserver);
             }
 
             var context =
@@ -142,13 +156,18 @@ namespace Deucarian.CommandRouting
                     "The command handler failed.");
             }
 
-            return Complete(command, result, stopwatch);
+            return Complete(
+                command,
+                result,
+                stopwatch,
+                completionObserver);
         }
 
         private CommandResult Complete(
             CommandEnvelope command,
             CommandResult result,
-            Stopwatch stopwatch)
+            Stopwatch stopwatch,
+            Action<CommandDispatchEventArgs> completionObserver)
         {
             stopwatch.Stop();
             double duration =
@@ -176,12 +195,12 @@ namespace Deucarian.CommandRouting
                     "'.");
             }
 
-            CommandCompleted?.Invoke(
-                this,
-                new CommandDispatchEventArgs(
-                    command,
-                    result,
-                    duration));
+            var eventArgs = new CommandDispatchEventArgs(
+                command,
+                result,
+                duration);
+            completionObserver?.Invoke(eventArgs);
+            CommandCompleted?.Invoke(this, eventArgs);
             return result;
         }
     }
