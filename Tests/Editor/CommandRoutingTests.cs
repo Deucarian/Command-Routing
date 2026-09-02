@@ -38,6 +38,27 @@ namespace Deucarian.CommandRouting.Tests
                 Is.EqualTo("legacy_refresh"));
         }
 
+        [Test]
+        public void JsonCodec_PreservesIsoTimestampPayloadAsString()
+        {
+            var codec = new JsonCommandProtocolCodec();
+
+            Assert.That(
+                codec.TryDecode(
+                    "{\"command\":\"update\",\"payload\":{" +
+                    "\"expires_at_utc\":\"2099-08-18T10:30:00Z\"}}",
+                    out CommandEnvelope command,
+                    out CommandResult failure),
+                Is.True);
+            Assert.That(failure, Is.Null);
+            Assert.That(
+                command.Payload["expires_at_utc"].Type,
+                Is.EqualTo(JTokenType.String));
+            Assert.That(
+                command.Payload.Value<string>("expires_at_utc"),
+                Is.EqualTo("2099-08-18T10:30:00Z"));
+        }
+
         [TestCase("")]
         [TestCase("{")]
         [TestCase("{}")]

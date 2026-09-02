@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.6] - 2026-09-02
+
+### Added
+
+- Added one transport-neutral route-completion event covering protocol
+  rejections and every dispatched command outcome without duplicating history.
+- Exposed the completed outcome, effective transport and endpoint, and a
+  bounded duration while isolating subscriber failures.
+- Preserved exact-once route completion when a legacy dispatch-completion
+  subscriber throws, without swallowing or changing that legacy exception.
+- Isolated every route-completion subscriber with a defensive outcome snapshot
+  so mutable JSON payloads cannot alter another observer or the caller result.
+
 ## [0.2.5] - 2026-08-31
 
 - Registered the package workflow and a bounded, sanitized local-state card with Deucarian Control Center.

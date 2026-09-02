@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -33,7 +34,7 @@ namespace Deucarian.CommandRouting
 
             try
             {
-                JObject root = JObject.Parse(message);
+                JObject root = ParseRootPreservingStringTokens(message);
                 string commandName =
                     ReadString(root, "command") ??
                     ReadString(root, "type") ??
@@ -137,6 +138,26 @@ namespace Deucarian.CommandRouting
             {
                 ["value"] = token.DeepClone()
             };
+        }
+
+        private static JObject ParseRootPreservingStringTokens(
+            string message)
+        {
+            using (var text = new StringReader(message))
+            using (var reader = new JsonTextReader(text)
+                   {
+                       DateParseHandling = DateParseHandling.None
+                   })
+            {
+                JObject root = JObject.Load(reader);
+                if (reader.Read())
+                {
+                    throw new JsonReaderException(
+                        "The command JSON contains trailing content.");
+                }
+
+                return root;
+            }
         }
 
         private static CommandMetadata ReadMetadata(
