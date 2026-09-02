@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Deucarian.Diagnostics;
@@ -91,6 +92,14 @@ namespace Deucarian.CommandRouting
         public CommandDispatcher<TApplicationContext>
             Dispatcher { get; }
 
+        /// <summary>
+        /// Raised once after every route attempt has produced its encoded
+        /// outcome, including protocol rejections that never reach dispatch.
+        /// Subscriber failures are isolated from routing and from one another.
+        /// </summary>
+        public event EventHandler<CommandRouteCompletedEventArgs>
+            RouteCompleted;
+
         public async Task<CommandResult> RouteJsonAsync(
             string message,
             string transport = null,
@@ -114,26 +123,33 @@ namespace Deucarian.CommandRouting
             CancellationToken cancellationToken = default)
         {
             ThrowIfDisposed();
+            var stopwatch = Stopwatch.StartNew();
 
             if (string.IsNullOrWhiteSpace(message))
             {
-                CommandResult emptyFailure =
-                    RecordProtocolFailure(
+                return CompleteRoute(
+                    null,
                     CommandResult.Failure(
                         CommandRoutingErrorCodes.EmptyMessage,
-                        "A command message is required."));
-                return CreateOutcome(null, emptyFailure);
+                        "A command message is required."),
+                    transport,
+                    remoteEndpoint,
+                    stopwatch,
+                    true);
             }
 
             if (message.Length >
                 options.MaximumMessageCharacters)
             {
-                CommandResult sizeFailure =
-                    RecordProtocolFailure(
+                return CompleteRoute(
+                    null,
                     CommandResult.Failure(
                         CommandRoutingErrorCodes.MessageTooLarge,
-                        "The command message exceeds the configured limit."));
-                return CreateOutcome(null, sizeFailure);
+                        "The command message exceeds the configured limit."),
+                    transport,
+                    remoteEndpoint,
+                    stopwatch,
+                    true);
             }
 
             if (!codec.TryDecode(
@@ -141,9 +157,13 @@ namespace Deucarian.CommandRouting
                     out CommandEnvelope command,
                     out CommandResult failure))
             {
-                CommandResult protocolFailure =
-                    RecordProtocolFailure(failure);
-                return CreateOutcome(null, protocolFailure);
+                return CompleteRoute(
+                    null,
+                    failure,
+                    transport,
+                    remoteEndpoint,
+                    stopwatch,
+                    true);
             }
 
             if (!string.IsNullOrWhiteSpace(transport) ||
@@ -154,12 +174,50 @@ namespace Deucarian.CommandRouting
                     remoteEndpoint);
             }
 
-            CommandResult result =
-                await Dispatcher.DispatchAsync(
+            CommandResult observedResult = null;
+            CommandResult result;
+            try
+            {
+                result = await Dispatcher.DispatchAsync(
                         command,
-                        cancellationToken)
+                        cancellationToken,
+                        eventArgs =>
+                            observedResult = eventArgs?.Result)
                     .ConfigureAwait(false);
-            return CreateOutcome(command, result);
+            }
+            catch (Exception)
+            {
+                if (observedResult != null)
+                {
+                    try
+                    {
+                        CompleteRoute(
+                            command,
+                            observedResult,
+                            transport,
+                            remoteEndpoint,
+                            stopwatch,
+                            false);
+                    }
+                    catch (Exception)
+                    {
+                        Log.Warning(
+                            "Command route completion failed while " +
+                            "preserving a dispatcher subscriber failure. " +
+                            "Exception text was omitted.");
+                    }
+                }
+
+                throw;
+            }
+
+            return CompleteRoute(
+                command,
+                result,
+                transport,
+                remoteEndpoint,
+                stopwatch,
+                false);
         }
 
         public string EncodeResult(
@@ -181,15 +239,49 @@ namespace Deucarian.CommandRouting
             diagnosticsRegistration?.Dispose();
         }
 
-        private CommandResult RecordProtocolFailure(
-            CommandResult failure)
+        private CommandRouteOutcome CompleteRoute(
+            CommandEnvelope command,
+            CommandResult result,
+            string requestedTransport,
+            string remoteEndpoint,
+            Stopwatch stopwatch,
+            bool recordProtocolFailure)
         {
-            failure =
-                failure ??
+            result =
+                result ??
                 CommandResult.Failure(
                     CommandRoutingErrorCodes.MalformedEnvelope,
                     "The command envelope is invalid.");
-            History.Record(null, failure, 0d);
+
+            if (recordProtocolFailure)
+            {
+                result = RecordProtocolFailure(result);
+            }
+
+            CommandRouteOutcome outcome =
+                CreateOutcome(command, result);
+            stopwatch.Stop();
+
+            PublishRouteCompleted(
+                new CommandRouteCompletedEventArgs(
+                    outcome,
+                    ResolveEffectiveTransport(
+                        command,
+                        requestedTransport),
+                    ResolveEffectiveRemoteEndpoint(
+                        command,
+                        remoteEndpoint),
+                    stopwatch.Elapsed.TotalMilliseconds));
+            return outcome;
+        }
+
+        private CommandResult RecordProtocolFailure(
+            CommandResult failure)
+        {
+            History.Record(
+                null,
+                failure,
+                0d);
             if (options.LogFailedCommands)
             {
                 Log.Warning(
@@ -209,6 +301,53 @@ namespace Deucarian.CommandRouting
                 command,
                 result,
                 codec.EncodeResult(command, result));
+        }
+
+        private void PublishRouteCompleted(
+            CommandRouteCompletedEventArgs args)
+        {
+            EventHandler<CommandRouteCompletedEventArgs>
+                subscribers = RouteCompleted;
+            if (subscribers == null)
+            {
+                return;
+            }
+
+            foreach (Delegate subscriber in
+                     subscribers.GetInvocationList())
+            {
+                try
+                {
+                    ((EventHandler<CommandRouteCompletedEventArgs>)
+                        subscriber)(
+                            this,
+                            args.CreateSubscriberSnapshot());
+                }
+                catch (Exception)
+                {
+                    Log.Warning(
+                        "Command route completion subscriber failed. " +
+                        "Exception text was omitted.");
+                }
+            }
+        }
+
+        private static string ResolveEffectiveTransport(
+            CommandEnvelope command,
+            string requestedTransport)
+        {
+            return command == null
+                ? requestedTransport
+                : command.Metadata.Transport;
+        }
+
+        private static string ResolveEffectiveRemoteEndpoint(
+            CommandEnvelope command,
+            string requestedRemoteEndpoint)
+        {
+            return command == null
+                ? requestedRemoteEndpoint
+                : command.Metadata.RemoteEndpoint;
         }
 
         private void ThrowIfDisposed()
