@@ -38,6 +38,17 @@ The runtime registers a sanitized diagnostics provider, uses
 `Deucarian.Logging`, rejects duplicate command names, and keeps a bounded
 redacted history.
 
+Routing preserves a non-null synchronization context present at invocation.
+After a pending handler or middleware pipeline completes, dispatch completion,
+result encoding, route observers, and transport replies continue on that
+context. Unity/browser transports must raise ingress on Unity's context; the
+package does not discover or marshal calls to a global main thread. This also
+supports context-bound desktop callers. With no synchronization context,
+continuations remain context-free as before and do not capture a custom task
+scheduler. Handlers and middleware remain responsible for their own awaits
+and any thread-affine work they perform. Do not block synchronously on a route
+while owning its synchronization context; await it instead.
+
 Subscribe to `RouteCompleted` when a composition root needs one
 transport-neutral observation point for every route outcome, including
 protocol rejections that do not reach a handler. The event provides the

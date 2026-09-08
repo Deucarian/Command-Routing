@@ -156,6 +156,9 @@ namespace Deucarian.CommandRouting
             object sender,
             CommandTransportMessageEventArgs args)
         {
+            // Browser/Unity transports must reply on their ingress context.
+            // Context-free transports keep their existing scheduling behavior.
+            bool captureContext = SynchronizationContext.Current != null;
             CancellationTokenSource source = cancellation;
             if (!started || source == null)
             {
@@ -170,7 +173,7 @@ namespace Deucarian.CommandRouting
                             transport.TransportId,
                             args.RemoteEndpoint,
                             source.Token)
-                        .ConfigureAwait(false);
+                        .ConfigureAwait(captureContext);
                 if (sendResponses &&
                     !source.IsCancellationRequested)
                 {
@@ -178,7 +181,7 @@ namespace Deucarian.CommandRouting
                             outcome.Response,
                             args.RemoteEndpoint,
                             source.Token)
-                        .ConfigureAwait(false);
+                        .ConfigureAwait(captureContext);
                 }
             }
             catch (OperationCanceledException)
