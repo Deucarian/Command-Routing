@@ -42,13 +42,13 @@ namespace Deucarian.CommandRouting.Editor
 
         private void OnGUI()
         {
-            DeucarianEditorChrome.DrawPackageHeader(
+            DeucarianEditorChrome.DrawPackageHeader(this,
                 "network",
                 "Command Routing",
                 "Commands, protocol, diagnostics and validation");
 
             selectedTab =
-                GUILayout.Toolbar(selectedTab, Tabs);
+                DeucarianEditorActionGUI.Toolbar(this, selectedTab, Tabs);
             GUILayout.Space(8f);
 
             scrollPosition =
@@ -71,7 +71,7 @@ namespace Deucarian.CommandRouting.Editor
             }
 
             EditorGUILayout.EndScrollView();
-            DeucarianEditorChrome.DrawFooterVersion(
+            DeucarianEditorChrome.DrawFooterVersion(this,
                 "com.deucarian.command-routing");
         }
 
@@ -81,29 +81,29 @@ namespace Deucarian.CommandRouting.Editor
                 "Operational standard",
                 () =>
                 {
-                    EditorGUILayout.LabelField(
+                    DeucarianEditorTextGUI.LabelField(
                         "Command Routing is transport-independent. " +
                         "Applications compose explicit handler strategies; " +
                         "browser, UDP, WebSocket, editor, test and in-process " +
                         "sources feed the same dispatcher.",
-                        EditorStyles.wordWrappedLabel);
+                        DeucarianEditorWorkbenchGUI.LabelStyle);
                     GUILayout.Space(6f);
-                    EditorGUILayout.LabelField(
+                    DeucarianEditorTextGUI.LabelField(
                         "Logging, diagnostics, JSON support and Deucarian " +
                         "editor styling are mandatory package capabilities.",
-                        EditorStyles.wordWrappedLabel);
+                        DeucarianEditorWorkbenchGUI.LabelStyle);
                 });
 
             DeucarianEditorCards.DrawCard(
                 "Current project",
                 () =>
                 {
-                    EditorGUILayout.LabelField(
+                    DeucarianEditorTextGUI.LabelField(
                         settings == null
                             ? "No CommandRoutingSettings asset was found."
                             : "Using " +
                               AssetDatabase.GetAssetPath(settings),
-                        EditorStyles.wordWrappedLabel);
+                        DeucarianEditorWorkbenchGUI.LabelStyle);
                     GUILayout.Space(6f);
                     if (settings == null &&
                         DeucarianEditorButtons.Primary(
@@ -207,13 +207,13 @@ namespace Deucarian.CommandRouting.Editor
             {
                 DeucarianEditorCards.DrawCard(
                     "Latest response",
-                    () => EditorGUILayout.TextArea(
+                    () => DeucarianEditorInputGUI.TextArea(
                         simulatorResponse,
                         GUILayout.MinHeight(72f)));
             }
 
             GUILayout.Space(4f);
-            showAutomatedChecks = EditorGUILayout.Foldout(
+            showAutomatedChecks = DeucarianEditorInputGUI.Foldout(
                 showAutomatedChecks,
                 "Automated checks",
                 true);
@@ -240,11 +240,11 @@ namespace Deucarian.CommandRouting.Editor
                     GUILayout.Space(6f);
                     DrawExamplePicker();
                     GUILayout.Space(6f);
-                    EditorGUILayout.LabelField(
+                    DeucarianEditorTextGUI.LabelField(
                         "Exact JSON envelope",
-                        EditorStyles.miniLabel);
+                        DeucarianEditorWorkbenchGUI.MiniLabelStyle);
                     simulatorJson =
-                        EditorGUILayout.TextArea(
+                        DeucarianEditorInputGUI.TextArea(
                             simulatorJson,
                             GUILayout.MinHeight(180f));
                     GUILayout.Space(8f);
@@ -284,7 +284,7 @@ namespace Deucarian.CommandRouting.Editor
 
             using (new EditorGUILayout.HorizontalScope())
             {
-                selectedScenarioIndex = EditorGUILayout.Popup(
+                selectedScenarioIndex = DeucarianEditorInputGUI.Popup(
                     "Example",
                     Math.Min(
                         selectedScenarioIndex,
@@ -317,7 +317,7 @@ namespace Deucarian.CommandRouting.Editor
                         sourceNames[index] = catalogSources[index].DisplayName;
                     }
 
-                    int sourceIndex = EditorGUILayout.Popup(
+                    int sourceIndex = DeucarianEditorInputGUI.Popup(
                         "Catalog",
                         selectedCatalogSourceIndex,
                         sourceNames);
@@ -339,7 +339,7 @@ namespace Deucarian.CommandRouting.Editor
                         return;
                     }
 
-                    automaticCommandDelaySeconds = EditorGUILayout.Slider(
+                    automaticCommandDelaySeconds = DeucarianEditorInputGUI.Slider(
                         "Delay between commands",
                         automaticCommandDelaySeconds,
                         0.1f,
@@ -397,7 +397,7 @@ namespace Deucarian.CommandRouting.Editor
                                  in section.Items)
                         {
                             EditorGUILayout.BeginHorizontal();
-                            EditorGUILayout.LabelField(
+                            DeucarianEditorTextGUI.LabelField(
                                 item.Label,
                                 GUILayout.Width(190f));
                             EditorGUILayout.SelectableLabel(
