@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.7] - 2026-09-08
+
+### Fixed
+
+- Preserve the caller's synchronization context across genuinely pending
+  command handlers, route completion, and transport responses, including
+  single-threaded WebGL players and context-bound desktop callers.
+- Retain context-free continuation behavior when ingress has no
+  synchronization context; do not capture a custom task scheduler or introduce
+  a global Unity dispatcher.
+- Add pending-handler and pending-send regression coverage for dispatch,
+  encoding, exact-once observations, replies, cancellation, stopped/restarted
+  bridges, and context-free custom-scheduler callers.
+
 ## [0.2.6] - 2026-09-02
 
 ### Added
