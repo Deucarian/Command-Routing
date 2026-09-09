@@ -16,15 +16,8 @@ namespace Deucarian.CommandRouting.Editor
     {
 
 
-        public static void Open()
-        {
-            var window =
-                GetWindow<CommandRoutingEditorWindow>();
-            window.titleContent =
-                new GUIContent("Command Routing");
-            window.minSize = new Vector2(560f, 480f);
-            window.Show();
-        }
+        public static void Open() =>
+            DeucarianEditorWindowPages.ShowStandalone<CommandRoutingEditorWindow>("Command Routing", new Vector2(560f, 480f));
 
         private void OnEnable()
         {
@@ -43,6 +36,9 @@ namespace Deucarian.CommandRouting.Editor
         {
             Repaint();
         }
+
+        public static IDeucarianEditorPage CreatePage() =>
+            DeucarianEditorImGuiPage.Create<CommandRoutingEditorWindow>(DeucarianToolIds.CommandRouting, window => window.OnGUI());
 
         private void OnGUI()
         {
