@@ -106,13 +106,14 @@ namespace Deucarian.CommandRouting
             string remoteEndpoint = null,
             CancellationToken cancellationToken = default)
         {
+            bool captureContext = SynchronizationContext.Current != null;
             CommandRouteOutcome outcome =
                 await RouteMessageAsync(
                         message,
                         transport,
                         remoteEndpoint,
                         cancellationToken)
-                    .ConfigureAwait(false);
+                    .ConfigureAwait(captureContext);
             return outcome.Result;
         }
 
@@ -123,6 +124,9 @@ namespace Deucarian.CommandRouting
             CancellationToken cancellationToken = default)
         {
             ThrowIfDisposed();
+            // Encoding and route observers belong to this invocation's context,
+            // including when its handler genuinely suspends in a WebGL player.
+            bool captureContext = SynchronizationContext.Current != null;
             var stopwatch = Stopwatch.StartNew();
 
             if (string.IsNullOrWhiteSpace(message))
@@ -183,7 +187,7 @@ namespace Deucarian.CommandRouting
                         cancellationToken,
                         eventArgs =>
                             observedResult = eventArgs?.Result)
-                    .ConfigureAwait(false);
+                    .ConfigureAwait(captureContext);
             }
             catch (Exception)
             {
