@@ -57,11 +57,12 @@ namespace Deucarian.CommandRouting
             CommandEnvelope command,
             CancellationToken cancellationToken = default)
         {
+            bool captureContext = SynchronizationContext.Current != null;
             return await DispatchAsync(
                     command,
                     cancellationToken,
                     null)
-                .ConfigureAwait(false);
+                .ConfigureAwait(captureContext);
         }
 
         internal async Task<CommandResult> DispatchAsync(
@@ -69,6 +70,9 @@ namespace Deucarian.CommandRouting
             CancellationToken cancellationToken,
             Action<CommandDispatchEventArgs> completionObserver)
         {
+            // Completion observers may be Unity-bound. With no caller context,
+            // retain context-free dispatch rather than capture a TaskScheduler.
+            bool captureContext = SynchronizationContext.Current != null;
             var stopwatch = Stopwatch.StartNew();
             CommandResult result;
 
@@ -132,7 +136,7 @@ namespace Deucarian.CommandRouting
                 result = await pipeline(
                         context,
                         cancellationToken)
-                    .ConfigureAwait(false);
+                    .ConfigureAwait(captureContext);
                 result =
                     result ??
                     CommandResult.Failure(

@@ -26,7 +26,7 @@ namespace Deucarian.CommandRouting.Editor
                     CommandRoutingEditorWindow.Open,
                     PackageId,
                     searchTerms: new[] { "command", "routing", "protocol", "tester" },
-                    order: 100));
+                    order: 100, createPage: CommandRoutingEditorWindow.CreatePage));
 
             CardRegistration = DeucarianControlCenterRegistry.RegisterCardProvider(
                 new CommandRoutingCardProvider());
@@ -81,7 +81,7 @@ namespace Deucarian.CommandRouting.Editor
                             new DeucarianControlCenterAction(
                                 PackageId + ".open",
                                 "Open Command Routing",
-                                CommandRoutingEditorWindow.Open)
+                                CommandRoutingEditorWindow.Open, navigationToolId: DeucarianToolIds.CommandRouting)
                         },
                         searchTerms: new[]
                         {
