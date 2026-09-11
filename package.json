@@ -1,6 +1,6 @@
 {
   "name": "com.deucarian.command-routing",
-  "version": "0.2.10",
+  "version": "0.3.0",
   "displayName": "Deucarian Command Routing",
   "description": "Transport-independent command routing, JSON protocol, diagnostics, logging, and editor tooling for Unity.",
   "unity": "2021.3",
@@ -22,7 +22,7 @@
   ],
   "dependencies": {
     "com.deucarian.diagnostics": "0.1.6",
-    "com.deucarian.editor": "1.10.8",
+    "com.deucarian.editor": "1.12.0",
     "com.deucarian.logging": "1.0.4",
     "com.unity.nuget.newtonsoft-json": "3.2.2"
   },
@@ -36,6 +36,11 @@
       "displayName": "Simple Usage",
       "description": "Minimal calls through the configured package host.",
       "path": "Samples~/SimpleUsage"
+    },
+    {
+      "displayName": "Definition Workflow",
+      "description": "Playable scene with typed C# calls, Inspector components, editable definitions and shared host ownership.",
+      "path": "Samples~/DefinitionWorkflow"
     }
   ]
 }
