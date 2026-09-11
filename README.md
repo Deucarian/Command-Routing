@@ -1,5 +1,7 @@
 # Deucarian Command Routing
 
+For simple calls and setup, see [Simple usage](Documentation~/SimpleUsage.md).
+
 Transport-independent command dispatch for Unity applications, with JSON
 protocol support, mandatory Deucarian logging and diagnostics, and a branded
 editor management surface.
