@@ -1,0 +1,8 @@
+{
+  "name": "Deucarian.CommandRouting.Samples.SimpleUsage",
+  "references": [
+    "Deucarian.CommandRouting"
+  ],
+  "autoReferenced": false,
+  "noEngineReferences": false
+}

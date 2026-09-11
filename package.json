@@ -31,6 +31,11 @@
       "displayName": "Command Routing Basics",
       "description": "Explicit handler composition and JSON command dispatch.",
       "path": "Samples~/Command Routing Basics"
+    },
+    {
+      "displayName": "Simple Usage",
+      "description": "Minimal calls through the configured package host.",
+      "path": "Samples~/SimpleUsage"
     }
   ]
 }
