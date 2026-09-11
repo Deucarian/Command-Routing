@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.10] - 2026-09-11
+
+- Use native catalog, payload and route controls with a focused primary action, shared search and retained advanced operations.
+- Require Editor 1.10.6 for the shared native controls, typography, responsive layouts and accessible interaction states.
+
 ## [0.2.9] - 2026-09-09
 
 ### Changed
