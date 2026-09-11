@@ -34,12 +34,13 @@ namespace Deucarian.CommandRouting
             if (takeOwnership) ownedRuntime = runtime;
         }
 
-        public async Task<CommandResult> ExecuteAsync<T>(string name, T payload, CancellationToken cancellationToken = default)
+        public async Task<CommandResult> ExecuteAsync<T>(CommandKey<T> command, T payload, CancellationToken cancellationToken = default)
         {
+            if (command == null) throw new ArgumentNullException(nameof(command), "Select a command matching this payload type or reuse its named CommandKey.");
             if (destroyed) throw new ObjectDisposedException(nameof(CommandHost));
             if (dispatch == null) throw new InvalidOperationException("Configure the command host first.");
-            if (!bindings.TryGetValue(name, out var binding))
-                return CommandResult.Failure(CommandRoutingErrorCodes.UnsupportedCommand, "No direct payload binding is registered for this command.");
+            if (!bindings.TryGetValue(command.Id, out var binding))
+                throw new InvalidOperationException("CommandHost '" + name + "' has no binding for '" + command.Id + "'. Register CommandPayloadBinding.For with this key when configuring the host.");
             if (!(binding is CommandPayloadBinding.Typed<T> typed))
                 throw new ArgumentException("The payload type does not match the registered command binding.", nameof(payload));
             using (var cancellation = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token, cancellationToken))

@@ -20,11 +20,11 @@ namespace Deucarian.CommandRouting.Tests
                 try
                 {
                     var host = go.AddComponent<CommandHost>();
-                    host.Configure(runtime, new[] { CommandPayloadBinding.For<string>("set_message", value => new JObject { ["message"] = value }) });
-                    Assert.That((await host.ExecuteAsync("set_message", "Hello")).Succeeded, Is.True);
+                    host.Configure(runtime, new[] { CommandPayloadBinding.For(new CommandHostTestsKey<string>("set_message"), value => new JObject { ["message"] = value }) });
+                    Assert.That((await host.ExecuteAsync(new CommandHostTestsKey<string>("set_message"), "Hello")).Succeeded, Is.True);
                     Assert.That(context.Message, Is.EqualTo("Hello"));
-                    Assert.That((await host.ExecuteAsync("missing", "Hello")).Succeeded, Is.False);
-                    Assert.ThrowsAsync<ArgumentException>(async () => await host.ExecuteAsync("set_message", 42));
+                    Assert.ThrowsAsync<InvalidOperationException>(async () => await host.ExecuteAsync(new CommandHostTestsKey<string>("missing"), "Hello"));
+                    Assert.ThrowsAsync<ArgumentException>(async () => await host.ExecuteAsync(new CommandHostTestsKey<int>("set_message"), 42));
                     UnityEngine.Object.DestroyImmediate(go);
                     Assert.That((await runtime.ExecuteAsync(new CommandEnvelope("set_message"))).Succeeded, Is.True);
                 }

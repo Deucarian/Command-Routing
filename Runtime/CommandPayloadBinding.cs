@@ -12,7 +12,8 @@ namespace Deucarian.CommandRouting
             CommandName = commandName.Trim();
         }
         public string CommandName { get; }
-        public static CommandPayloadBinding For<T>(string commandName, Func<T, JObject> encode) => new Typed<T>(commandName, encode);
+        public static CommandPayloadBinding For<T>(CommandKey<T> command, Func<T, JObject> encode) =>
+            new Typed<T>(command != null ? command.Id : throw new ArgumentNullException(nameof(command)), encode);
         internal sealed class Typed<T> : CommandPayloadBinding
         {
             private readonly Func<T, JObject> encode;

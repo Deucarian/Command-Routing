@@ -22,7 +22,7 @@
   ],
   "dependencies": {
     "com.deucarian.diagnostics": "0.1.6",
-    "com.deucarian.editor": "1.7.0",
+    "com.deucarian.editor": "1.10.8",
     "com.deucarian.logging": "1.0.4",
     "com.unity.nuget.newtonsoft-json": "3.2.2"
   },
