@@ -13,6 +13,7 @@
   ],
   "sampleAssemblies": [
     "Deucarian.CommandRouting.Samples.Basic",
+    "Deucarian.CommandRouting.Samples.DefinitionWorkflow",
     "Deucarian.CommandRouting.Samples.SimpleUsage"
   ],
   "testAssemblies": [

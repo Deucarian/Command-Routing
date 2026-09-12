@@ -1,5 +1,15 @@
 # Deucarian Command Routing
 
+## Typed definition workflow
+
+The payload contract is declared once. The startup component registers its real handler; no assembly scanning or domain state assets are needed.
+
+Start with the [Definition Workflow walkthrough](Documentation~/DefinitionWorkflow.md).
+Import **Definition Workflow** in Package Manager for a configured sample scene
+and short caller scripts. The sample keeps typed contracts and service setup explicit, with reusable
+components for scene callers.
+
+
 For simple calls and setup, see [Simple usage](Documentation~/SimpleUsage.md).
 
 Transport-independent command dispatch for Unity applications, with JSON
