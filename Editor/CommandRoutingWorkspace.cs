@@ -24,6 +24,7 @@ namespace Deucarian.CommandRouting.Editor
         private DeucarianEditorWorkspaceForm form;
         private DeucarianEditorSerializedForm settingsForm;
         private CommandRoutingSettings settings;
+        private readonly DeucarianEditorAssetField settingsPicker;
         private Button send, sequence;
         private string displayedKey;
         private string sourceSignature;
@@ -55,9 +56,11 @@ namespace Deucarian.CommandRouting.Editor
             left.Add(searchRow);
             search.RegisterValueChangedCallback(_ => RefreshRows());
             rows = new VisualElement { name = "command-rows" }; left.Add(rows);
-            string[] guids = AssetDatabase.FindAssets("t:CommandRoutingSettings");
-            Array.Sort(guids, StringComparer.Ordinal);
-            if (guids.Length > 0) settings = AssetDatabase.LoadAssetAtPath<CommandRoutingSettings>(AssetDatabase.GUIDToAssetPath(guids[0]));
+            settings = LoadDefaultSettings();
+            settingsPicker = new DeucarianEditorAssetField("command-settings", typeof(CommandRoutingSettings), () => settings,
+                value => { settings = value as CommandRoutingSettings; BuildDetails(); },
+                create: () => { CreateSettings(); return settings; }, customize: DeucarianEditorAssetCatalog.CopyToProject,
+                defaultValue: LoadDefaultSettings);
             session.Changed += Refresh;
             Refresh();
         }
@@ -162,10 +165,8 @@ namespace Deucarian.CommandRouting.Editor
             checks.Slider("command-delay", "Delay between commands", .1f, 2, () => session.DelaySeconds, value => session.DelaySeconds = value);
             sequence = checks.Action("command-sequence", "Run all checks", session.RunSequence);
             var advanced = raw.Section("Routing settings", true);
-            advanced.Asset("command-settings", "Settings asset", typeof(CommandRoutingSettings), () => settings,
-                value => { settings = value as CommandRoutingSettings; BuildDetails(); });
-            if (settings == null) advanced.Action("command-create-settings", "Create settings", CreateSettings);
-            else
+            advanced.Root.Add(Controls.Field("Settings asset", settingsPicker.Root)); settingsPicker.Refresh();
+            if (settings != null)
             {
                 settingsForm = new DeucarianEditorSerializedForm(advanced.Root, settings);
                 settingsForm.Remaining();
@@ -203,6 +204,8 @@ namespace Deucarian.CommandRouting.Editor
             Selection.activeObject = settings; EditorGUIUtility.PingObject(settings);
             BuildDetails();
         }
+        private static CommandRoutingSettings LoadDefaultSettings() => AssetDatabase.LoadAssetAtPath<CommandRoutingSettings>(
+            "Packages/com.deucarian.command-routing/Runtime/Defaults/CommandRoutingSettings.asset");
         public void Dispose()
         { session.Changed -= Refresh; settingsForm?.Dispose(); workspace.Dispose(); }
     }

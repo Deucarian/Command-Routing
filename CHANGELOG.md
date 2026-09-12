@@ -1,5 +1,9 @@
 # Changelog
 
+## Asset workflow — Unreleased
+
+- Bundle explicit routing defaults and retain the shared settings picker across route-detail updates.
+
 ## [0.3.0] - 2026-09-11
 
 - Add a reusable typed command trigger and a sample with an explicitly registered handler.
