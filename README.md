@@ -1,5 +1,9 @@
 # Deucarian Command Routing
 
+## Asset selection and project defaults
+
+Advanced → Routing settings starts with the bundled default asset. Choose searches installed packages and project assets, Create makes project settings, and Customize copies a selected asset for editing. Bundled settings remain read-only. Selecting settings in the editor is not an implicit runtime router replacement.
+
 ## Typed definition workflow
 
 The payload contract is declared once. The startup component registers its real handler; no assembly scanning or domain state assets are needed.
