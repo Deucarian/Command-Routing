@@ -1,62 +1,34 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
-using Deucarian.Diagnostics;
 using Deucarian.Editor;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace Deucarian.CommandRouting.Editor
 {
-    public sealed partial class CommandRoutingEditorWindow :
-        EditorWindow
+    public sealed class CommandRoutingEditorWindow : EditorWindow
     {
-        private const string SettingsFolder =
-            "Assets/Deucarian/CommandRouting";
-        private const string SettingsPath =
-            SettingsFolder +
-            "/CommandRoutingSettings.asset";
-
-        private static readonly string[] Tabs =
+        private CommandRoutingWorkspace view;
+        private CommandRoutingTestSession session;
+        private double nextRefresh;
+        public static void Open() => DeucarianEditorWindowPages.ShowStandalone<CommandRoutingEditorWindow>(
+            "Command routing", new Vector2(560, 480));
+        public static IDeucarianEditorPage CreatePage() =>
+            DeucarianEditorWindowPages.Create<CommandRoutingEditorWindow>((window, root) => window.Build(root),
+                activate: (window, _) => window.Activate(), deactivate: window => window.session?.Deactivate(),
+                update: window => window.Tick());
+        private void OnEnable() { session = new CommandRoutingTestSession(); }
+        private void OnDisable() { view?.Dispose(); view = null; session?.Dispose(); session = null; }
+        public void CreateGUI() => Build(rootVisualElement);
+        private void Build(VisualElement root)
+        { view?.Dispose(); view = new CommandRoutingWorkspace(root, session); }
+        private void Activate() { session?.Activate(); view?.Refresh(); }
+        private void OnInspectorUpdate() => Tick();
+        private void Tick()
         {
-            "Overview",
-            "Settings",
-            "Live Tester",
-            "Diagnostics"
-        };
-
-        private CommandRoutingSettings settings;
-        private SerializedObject serializedSettings;
-        private Vector2 scrollPosition;
-        private int selectedTab;
-        private string simulatorJson =
-            "{\n" +
-            "  \"protocol_version\": 1,\n" +
-            "  \"command_id\": \"editor-preview-1\",\n" +
-            "  \"command\": \"example_command\",\n" +
-            "  \"payload\": {}\n" +
-            "}";
-        private string simulatorResult =
-            "Enter an envelope and validate it.";
-        private MessageType simulatorMessageType =
-            MessageType.Info;
-        private string simulatorResponse = string.Empty;
-        private IReadOnlyList<ICommandTestCatalogSource> catalogSources =
-            new List<ICommandTestCatalogSource>();
-        private CommandTestCatalog catalog;
-        private string selectedCatalogSourceId = string.Empty;
-        private int selectedCatalogSourceIndex;
-        private int selectedScenarioIndex;
-        private int observedCatalogRegistryVersion = -1;
-        private bool sending;
-        private CancellationTokenSource sendCancellation;
-        private long lastRevision;
-        private int nextCommandSequence;
-        private float automaticCommandDelaySeconds = 0.75f;
-        private bool showAutomatedChecks;
+            if (EditorApplication.timeSinceStartup < nextRefresh) return;
+            nextRefresh = EditorApplication.timeSinceStartup + .25;
+            session?.RefreshCatalogSources();
+            view?.Refresh();
+        }
     }
 }

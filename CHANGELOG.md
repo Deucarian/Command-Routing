@@ -1,5 +1,21 @@
 # Changelog
 
+## Asset workflow — Unreleased
+
+- Bundle explicit routing defaults and retain the shared settings picker across route-detail updates.
+
+## [0.3.0] - 2026-09-11
+
+- Add a reusable typed command trigger and a sample with an explicitly registered handler.
+- Include a playable Definition Workflow sample with configured hosts, short callers and usage documentation.
+- Align declared package dependencies with the definition-authoring development wave.
+
+
+## [0.2.10] - 2026-09-11
+
+- Use native catalog, payload and route controls with a focused primary action, shared search and retained advanced operations.
+- Require Editor 1.10.6 for the shared native controls, typography, responsive layouts and accessible interaction states.
+
 ## [0.2.9] - 2026-09-09
 
 ### Changed

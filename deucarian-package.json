@@ -12,7 +12,9 @@
     "Deucarian.CommandRouting.Editor"
   ],
   "sampleAssemblies": [
-    "Deucarian.CommandRouting.Samples.Basic"
+    "Deucarian.CommandRouting.Samples.Basic",
+    "Deucarian.CommandRouting.Samples.DefinitionWorkflow",
+    "Deucarian.CommandRouting.Samples.SimpleUsage"
   ],
   "testAssemblies": [
     "Deucarian.CommandRouting.Tests"

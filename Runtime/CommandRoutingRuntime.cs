@@ -89,6 +89,14 @@ namespace Deucarian.CommandRouting
 
         public CommandHistory History { get; }
 
+        /// <summary>Dispatches an explicitly constructed local command through the same handlers and middleware.</summary>
+        public Task<CommandResult> ExecuteAsync(CommandEnvelope command, CancellationToken cancellationToken = default)
+        {
+            if (disposed) throw new ObjectDisposedException(nameof(CommandRoutingRuntime<TApplicationContext>));
+            if (command == null) throw new ArgumentNullException(nameof(command));
+            return Dispatcher.DispatchAsync(command, cancellationToken);
+        }
+
         public CommandDispatcher<TApplicationContext>
             Dispatcher { get; }
 

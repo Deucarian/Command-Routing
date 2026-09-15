@@ -1,0 +1,7 @@
+{
+  "name": "Deucarian.CommandRouting.Samples.DefinitionWorkflow",
+  "references": [
+    "Deucarian.CommandRouting",
+    "Unity.Newtonsoft.Json"
+  ]
+}
